@@ -1,0 +1,6 @@
+timestamp,client_ip,host,url,bytes
+2026-10-10 08:14:50,192.168.1.31,malware-site.net,http://malware-site.net/payload.exe,482304
+2026-10-10 08:16:02,192.168.1.10,www.google.com,https://www.google.com/search?q=test,20311
+2026-10-10 08:18:30,192.168.1.22,evil-domain.com,http://evil-domain.com/login,1520
+2026-10-10 08:19:44,192.168.1.45,news.example.org,https://news.example.org/today,88123
+2026-10-10 08:22:10,192.168.1.31,malware-site.net,http://malware-site.net/other.exe,1200

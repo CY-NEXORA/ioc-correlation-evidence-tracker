@@ -1,0 +1,17 @@
+value,type,source,added_date
+185.220.101.45,ip,ThreatFeedA,2026-10-01
+EVIL-Domain.COM.,domain,ThreatFeedA,2026-10-02
+hxxp://malware-site[.]net/payload.exe,url,ThreatFeedB,2026-10-03
+44d88612fea8a8f36de82e1278abb02f,md5,ThreatFeedB,2026-10-03
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,sha256,ThreatFeedC,2026-10-04
+phish@bad-mail.org,email,ThreatFeedC,2026-10-04
+2001:0db8:0000:0000:0000:0000:0000:0bad,ip,ThreatFeedA,2026-10-05
+c2.badhost.org,domain,ThreatFeedA,2026-10-05
+10.66.6.6,ip,InternalIR,2026-10-06
+185.220.101.45,ip,ThreatFeedB,2026-10-06
+evil-domain.com,domain,ThreatFeedB,2026-10-07
+999.999.1.1,ip,BadFeed,2026-10-07
+not a domain,domain,BadFeed,2026-10-08
+123abc,md5,BadFeed,2026-10-08
+c2.badhost.org,ip,BadFeed,2026-10-09
+,domain,BadFeed,2026-10-09
