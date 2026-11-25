@@ -45,6 +45,11 @@ class Indicator:
 
 
 # ---------------------------------------------------------------- helpers
+def is_blank(value) -> bool:
+    """True for None, NaN and empty or whitespace-only text."""
+    return value is None or (isinstance(value, float) and pd.isna(value)) or not str(value).strip()
+
+
 def refang(text: str) -> str:
     """Undo 'defanging' used to share IOCs safely: hxxp://evil[.]com -> http://evil.com"""
     t = text.strip()
@@ -110,7 +115,7 @@ def normalize_indicator(raw, declared_type=None) -> Indicator:
         return Indicator(original, "", "", False, "unrecognised or malformed indicator")
 
     # If the file declared a type, it must agree with what we detected.
-    if declared_type is not None and str(declared_type).strip():
+    if not is_blank(declared_type):
         declared = str(declared_type).strip().lower()
         allowed = DECLARED_TO_DETECTED.get(declared)
         if allowed is None:

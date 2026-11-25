@@ -18,8 +18,8 @@ def load_ioc_file(path: str) -> pd.DataFrame:
     """Load an IOC CSV or JSON file."""
     file_path = _check_supported_file(path)
     if file_path.suffix.lower() == ".csv":
-        return pd.read_csv(file_path)
-    return pd.read_json(file_path)
+        return pd.read_csv(file_path, dtype=str)
+    return pd.read_json(file_path, dtype=str)
 
 
 def load_evidence_file(path: str) -> pd.DataFrame:
