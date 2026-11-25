@@ -25,7 +25,8 @@ def init_db(db_path: str) -> sqlite3.Connection:
             id INTEGER PRIMARY KEY,
             row_id INTEGER,
             original_value TEXT,
-            reason TEXT
+            reason TEXT,
+            UNIQUE(row_id, original_value, reason)
         );
         CREATE TABLE IF NOT EXISTS evidence_files (
             id INTEGER PRIMARY KEY,
@@ -61,7 +62,7 @@ def save_iocs(conn: sqlite3.Connection, valid_df: pd.DataFrame, rejected_df: pd.
 
     for row in rejected_df.to_dict("records"):
         conn.execute(
-            "INSERT INTO rejected_iocs (row_id, original_value, reason) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO rejected_iocs (row_id, original_value, reason) VALUES (?, ?, ?)",
             (int(row["row_id"]), str(row.get("value", "")), str(row.get("reason", ""))),
         )
     conn.commit()
@@ -86,35 +87,52 @@ def register_evidence_file(conn: sqlite3.Connection, path: str, row_count: int) 
     return int(cursor.lastrowid)
 
 
-def save_matches(conn: sqlite3.Connection, matches_df: pd.DataFrame) -> None:
-    """Save matched rows while silently skipping duplicates."""
+def save_matches(conn: sqlite3.Connection, matches_df: pd.DataFrame,
+                 file_id: int | None = None) -> None:
+    """Save matched rows while silently skipping duplicates.
+
+    Pass file_id so every match is linked to the exact evidence file record it came from.
+    Without it, records are looked up by file name (ambiguous if two files share a name).
+    """
     for row in matches_df.to_dict("records"):
         ioc = conn.execute(
             "SELECT id FROM iocs WHERE value = ? AND type = ?",
             (row["ioc_value"], row["ioc_type"]),
         ).fetchone()
-        file_row = conn.execute(
-            "SELECT id FROM evidence_files WHERE filename = ?",
-            (row["source_file"],),
-        ).fetchall()
         if not ioc:
             continue
-        for file_record in file_row:
+        if file_id is not None:
+            file_ids = [file_id]
+        else:
+            file_ids = [
+                record[0] for record in conn.execute(
+                    "SELECT id FROM evidence_files WHERE filename = ?", (row["source_file"],)
+                ).fetchall()
+            ]
+        for linked_file_id in file_ids:
             conn.execute(
                 """INSERT OR IGNORE INTO matches
                    (ioc_id, file_id, row_id, event_time, matched_field, matched_value)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (
-                    ioc[0], file_record[0], int(row["row_id"]),
+                    ioc[0], linked_file_id, int(row["row_id"]),
                     str(row.get("event_time", "")), row["matched_field"], row["matched_value"],
                 ),
             )
     conn.commit()
 
 
-def get_matches(conn: sqlite3.Connection) -> pd.DataFrame:
-    """Return all stored matches with IOC and evidence file details."""
-    query = """
+def get_matches(conn: sqlite3.Connection, file_ids: list[int] | None = None) -> pd.DataFrame:
+    """Return stored matches with IOC and evidence file details.
+
+    If file_ids is given, only matches from those evidence file records are returned.
+    """
+    where = ""
+    params: list[int] = []
+    if file_ids is not None:
+        params = sorted(set(file_ids)) or [-1]
+        where = "WHERE m.file_id IN ({})".format(",".join("?" * len(params)))
+    query = f"""
         SELECT i.value AS ioc_value, i.type AS ioc_type, i.source AS source,
                f.filename AS filename, m.row_id AS row_id,
                m.event_time AS event_time, m.matched_field AS matched_field,
@@ -122,6 +140,7 @@ def get_matches(conn: sqlite3.Connection) -> pd.DataFrame:
         FROM matches AS m
         JOIN iocs AS i ON i.id = m.ioc_id
         JOIN evidence_files AS f ON f.id = m.file_id
-        ORDER BY m.event_time
+        {where}
+        ORDER BY m.event_time, m.id
     """
-    return pd.read_sql_query(query, conn)
+    return pd.read_sql_query(query, conn, params=params)
