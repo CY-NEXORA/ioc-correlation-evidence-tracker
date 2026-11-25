@@ -10,7 +10,8 @@ from src.importer import file_sha256
 def init_db(db_path: str) -> sqlite3.Connection:
     """Create the SQLite database and required tables."""
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    # Allow Streamlit worker threads to use the same temporary SQLite connection.
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS iocs (
